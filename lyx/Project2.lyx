@@ -318,17 +318,5 @@ Atmospheric seeing also is not completely uncorrelated, since the air currents
  using Markov Chain Monte Carlo (MCMC).
 \end_layout
 
-\begin_layout Standard
-\begin_inset CommandInset bibtex
-LatexCommand bibtex
-btprint "btPrintCited"
-bibfiles "acm_1403886"
-options "plain"
-
-\end_inset
-
-
-\end_layout
-
 \end_body
 \end_document

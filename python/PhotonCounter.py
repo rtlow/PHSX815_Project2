@@ -8,19 +8,26 @@ import numpy as np
 sys.path.append(".")
 from python.Random import Random
 
+# TODO Write sampling code (MCMC, etc) TODO
+
 # main function for experiment code
 if __name__ == "__main__":
     # if the user includes the flag -h or --help print the options
     if '-h' in sys.argv or '--help' in sys.argv:
-        print ("Usage: %s [-seed number] -rate [rate parameter] -Nmeas [no. measurements] -Nexp [no. experiments] -output [outfile]" % sys.argv[0])
+        print ("Usage: %s [options]" % sys.argv[0] )
+        print('Options:')
+        print("-seed [number]       random seed") 
+        print('-T [number]          temperature in Kelvin')
+        print('-Nmeas [number]      no. measurements per experiment')
+        print('-Nexp [number]       no. experiments')
+        print('-output [string]     output file name')
+        print('--model0             simulate model 0')
+        print('--model1             simulate model 1')
         print
         sys.exit(1)
 
     # default seed
     seed = 5555
-
-    # default rate parameter for electron counts (counts per second)
-    rate = 1.
 
     # default number of exposures (letting light collect for fixed time) - per experiment
     Nmeas = 1
@@ -28,18 +35,24 @@ if __name__ == "__main__":
     # default number of experiments
     Nexp = 1
 
+    # default temperature
+    T = 300
+
     # output file defaults
     doOutputFile = False
+
+    # do model0 by default
+    model0 = True
 
     # read the user-provided seed from the command line (if there)
     if '-seed' in sys.argv:
         p = sys.argv.index('-seed')
         seed = sys.argv[p+1]
-    if '-rate' in sys.argv:
-        p = sys.argv.index('-rate')
+    if '-T' in sys.argv:
+        p = sys.argv.index('-T')
         ptemp = float(sys.argv[p+1])
         if ptemp > 0:
-            rate = ptemp
+            T = ptemp
     if '-Nmeas' in sys.argv:
         p = sys.argv.index('-Nmeas')
         Nt = int(sys.argv[p+1])
@@ -54,6 +67,12 @@ if __name__ == "__main__":
         p = sys.argv.index('-output')
         OutputFileName = sys.argv[p+1]
         doOutputFile = True
+
+    if '--model0' in sys.argv:
+        model0 = True
+
+    if '--model1' in sys.argv:
+        model1 = True
 
     # class instance of our Random class using seed
     random = Random(seed)
