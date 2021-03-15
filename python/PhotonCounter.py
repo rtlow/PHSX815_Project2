@@ -8,6 +8,91 @@ import numpy as np
 sys.path.append(".")
 from python.Random import Random
 
+# global variables
+kB = 8.617333e-5 # [ev/k]
+
+Ef = 1.12 / 2 # band gap of Si divided by 2 [eV]
+
+Nelectrons = 1000 # no. free electrons per pixel
+
+MeanSeeing = 10 # standard deviation of atmospheric seeing [arcsecond]
+
+I0 = 100 # maximum intensity of Airy disk [W/m^2]
+
+aper_a = 0.5 # aperture radius [m]
+
+aper_R = 1 # distance from aperture to focal plane [m] 
+
+lamb = 4000e-10 # mean observation wavelength [Angstrom]
+
+# default seed
+seed = 5555
+
+
+# read the user-provided seed from the command line (if there)
+# logic is up here so that random object can be global
+if '-seed' in sys.argv:
+    p = sys.argv.index('-seed')
+    seed = sys.argv[p+1]
+
+# class instance of our Random class using seed
+random = Random(seed)
+
+
+# returns the probability of finding an excited electron
+# at energy E [eV] and temperature T [K]
+def FermiDirac(E, T):
+    return 1/( 1 + np.exp( (E - Ef)/ (kB * T) ) )
+
+# distribution is bounded by 1 on top
+def Flat():
+    return 1
+
+
+# provides samples from the Fermi-Dirac distribution
+# using hit-miss method
+def sampleFermiDirac(Nsample, T):
+    
+    i = 0
+
+    samples = []
+    
+    while( i < Nsample ):
+        
+        # just need to sample over [0, 1]
+        X = random.rand()
+
+        R = FermiDirac(X, T)/Flat()
+
+        ran = random.rand()
+
+        # reject the sample and continue
+        if (ran > R):
+            continue
+        else:
+            samples.append(X)
+            i+=1
+
+    return samples
+
+# 2D Airy Disk
+def AiryDisk(x):
+
+    q = np.sqrt( x[0]**2 + x[1]**2 )
+
+    arg = 2 * np.pi * aper_a * q / (lamb * aper_R)
+
+    return I0 * (2 * special.j1(arg) / arg ) ** 2
+
+# MCMC sampling for the Airy Disk
+def sampleAiry():
+    
+    #initial x and y
+
+    x = [1, 1]
+
+    asdfdfsasfdfdsa
+
 # TODO Write sampling code (MCMC, etc) TODO
 
 # main function for experiment code
@@ -26,8 +111,7 @@ if __name__ == "__main__":
         print
         sys.exit(1)
 
-    # default seed
-    seed = 5555
+
 
     # default number of exposures (letting light collect for fixed time) - per experiment
     Nmeas = 1
@@ -44,10 +128,7 @@ if __name__ == "__main__":
     # do model0 by default
     model0 = True
 
-    # read the user-provided seed from the command line (if there)
-    if '-seed' in sys.argv:
-        p = sys.argv.index('-seed')
-        seed = sys.argv[p+1]
+
     if '-T' in sys.argv:
         p = sys.argv.index('-T')
         ptemp = float(sys.argv[p+1])
@@ -74,8 +155,7 @@ if __name__ == "__main__":
     if '--model1' in sys.argv:
         model1 = True
 
-    # class instance of our Random class using seed
-    random = Random(seed)
+
 
     if doOutputFile:
         outfile = open(OutputFileName, 'w')
