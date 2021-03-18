@@ -84,14 +84,29 @@ def AiryDisk(x):
 
     return I0 * (2 * special.j1(arg) / arg ) ** 2
 
+def Gaussian(x, mu, sig):
+    return 1/( sig * np.sqrt(2 * np.pi) ) np.exp( - ( (x - mu)/( 4 * sig ) )**2 )
+
+
+# TODO Break that logic into its own function so that we can loop easier TODO
+
+
 # MCMC sampling for the Airy Disk
-def sampleAiry():
+def sampleAiry(Nburn=0, Nskip=0):
     
     #initial x and y
 
     x = [1, 1]
 
-    asdfdfsasfdfdsa
+    p_x = [ random.Normal(mu=x[0], sig=MeanSeeing) ,\
+                  random.Normal(mu=x[1], sig=MeanSeeing) ]
+
+    acceptance_prob = min( 1,\
+                          AiryDisk(p_x) * Gaussian(x[0], p_x[0], MeanSeeing) * Gaussian(x[1], p_x[1], MeanSeeing)/ \
+                          ( AiryDisk(x) * Gaussian(p_x[0], x[0], MeanSeeing) * Gaussian(p_x[1], x[1], MeanSeeing) ) )
+    R = random.rand()
+
+
 
 # TODO Write sampling code (MCMC, etc) TODO
 
