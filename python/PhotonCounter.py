@@ -3,6 +3,7 @@
 # imports of external packages to use in our code
 import sys
 import numpy as np
+import scipy.special as special
 
 # import our Random class from python/Random.py file
 sys.path.append(".")
@@ -13,17 +14,19 @@ kB = 8.617333e-5 # [ev/k]
 
 Ef = 1.12 / 2 # band gap of Si divided by 2 [eV]
 
-Nelectrons = 1000 # no. free electrons per pixel
+Nelectrons = 100 # no. free electrons per pixel
 
 MeanSeeing = 10 # standard deviation of atmospheric seeing [arcsecond]
 
-I0 = 100 # maximum intensity of Airy disk [W/m^2]
+# TODO Adjust these parameters so that they make physical sense
+
+I0 = 100 # maximum intensity of Airy disk [counts/second]
 
 aper_a = 0.5 # aperture radius [m]
 
 aper_R = 1 # distance from aperture to focal plane [m] 
 
-lamb = 4000e-10 # mean observation wavelength [Angstrom]
+lamb = 4000e-10 # mean observation wavelength [m]
 
 # default seed
 seed = 5555
@@ -60,6 +63,7 @@ def sampleFermiDirac(Nsample, T):
     while( i < Nsample ):
         
         # just need to sample over [0, 1]
+        # samples of X are electron energies
         X = random.rand()
 
         R = FermiDirac(X, T)/Flat()
@@ -70,9 +74,18 @@ def sampleFermiDirac(Nsample, T):
         if (ran > R):
             continue
         else:
-            samples.append(X)
-            i+=1
+            
+            # convert from electron energy to rate parameter
+            
+            rate = Nelectrons * FermiDirac(X, T)
+            
+            # use this to sample from Poisson
+            samp = random.Poisson(rate)
+            
+            samples.append(samp)
 
+            i+=1
+    
     return samples
 
 # 2D Airy Disk
@@ -84,19 +97,12 @@ def AiryDisk(x):
 
     return I0 * (2 * special.j1(arg) / arg ) ** 2
 
+# just a Gaussian
 def Gaussian(x, mu, sig):
-    return 1/( sig * np.sqrt(2 * np.pi) ) np.exp( - ( (x - mu)/( 4 * sig ) )**2 )
+    return 1/( sig * np.sqrt(2 * np.pi) ) * np.exp( - ( (x - mu)/( 4 * sig ) )**2 )
 
-
-# TODO Break that logic into its own function so that we can loop easier TODO
-
-
-# MCMC sampling for the Airy Disk
-def sampleAiry(Nburn=0, Nskip=0):
-    
-    #initial x and y
-
-    x = [1, 1]
+# doing the MCMC sampling
+def get_MCMC_sample(x):
 
     p_x = [ random.Normal(mu=x[0], sig=MeanSeeing) ,\
                   random.Normal(mu=x[1], sig=MeanSeeing) ]
@@ -106,9 +112,50 @@ def sampleAiry(Nburn=0, Nskip=0):
                           ( AiryDisk(x) * Gaussian(p_x[0], x[0], MeanSeeing) * Gaussian(p_x[1], x[1], MeanSeeing) ) )
     R = random.rand()
 
+    if R <= acceptance_prob:
+        return p_x
+    else:
+        return x
 
 
-# TODO Write sampling code (MCMC, etc) TODO
+# MCMC sampling for the Airy Disk
+def sampleAiry(Nsamp, Nburn=0, Nskip=0):
+    
+    #initial x and y
+
+    x = [1, 1]
+
+    # burning off Nburn samples
+    for n in range(Nburn):
+        x = get_MCMC_sample(x)
+
+    samples = []
+    
+    # generating our samples
+    for n in range(Nsamp):
+        
+        # skipping every Nburn value
+        for i in range(Nburn):
+
+            x = get_MCMC_sample(x)
+
+
+        x = get_MCMC_sample(x)
+        
+        print(x)
+
+        # use the Airy disk to convert these locations to
+        # rate parameters
+        rate = AiryDisk(x)
+        
+        # take a sample from Poisson
+        samp = random.Poisson(rate)
+
+        samples.append(samp)
+    
+    print(samples)
+
+    return samples
 
 # main function for experiment code
 if __name__ == "__main__":
@@ -120,6 +167,8 @@ if __name__ == "__main__":
         print('-T [number]          temperature in Kelvin')
         print('-Nmeas [number]      no. measurements per experiment')
         print('-Nexp [number]       no. experiments')
+        print('-Nskip [number]      no. samples to skip in MCMC')
+        print('-Nburn [number]      no. samples to burn in MCMC')
         print('-output [string]     output file name')
         print('--model0             simulate model 0')
         print('--model1             simulate model 1')
@@ -143,6 +192,12 @@ if __name__ == "__main__":
     # do model0 by default
     model0 = True
 
+    # default Nskip
+    Nskip = 0
+
+    # default Nburn
+    Nburn = 0
+
 
     if '-T' in sys.argv:
         p = sys.argv.index('-T')
@@ -159,6 +214,16 @@ if __name__ == "__main__":
         Ne = int(sys.argv[p+1])
         if Ne > 0:
             Nexp = Ne
+    if '-Nskip' in sys.argv:
+        p = sys.argv.index('-Nskip')
+        Ne = int(sys.argv[p+1])
+        if Ne > 0:
+            Nskip = Ne
+    if '-Nburn' in sys.argv:
+        p = sys.argv.index('-Nburn')
+        Ne = int(sys.argv[p+1])
+        if Ne > 0:
+            Nburn = Ne
     if '-output' in sys.argv:
         p = sys.argv.index('-output')
         OutputFileName = sys.argv[p+1]
@@ -168,22 +233,28 @@ if __name__ == "__main__":
         model0 = True
 
     if '--model1' in sys.argv:
-        model1 = True
+        model0 = False
 
 
+    experiments = []
+    
+    for n in range(Nexp):
+
+        if model0:
+            
+            measurements = sampleFermiDirac(Nmeas, T)
+            experiments.append(measurements)
+
+        else:
+
+            measurements = sampleAiry(Nmeas, Nburn, Nskip)
+            experiments.append(measurements)
 
     if doOutputFile:
-        outfile = open(OutputFileName, 'w')
-        outfile.write(str(rate)+" \n")
-        for e in range(0,Nexp):
-            for t in range(0,Nmeas):
-                outfile.write(str(random.Poisson(rate))+" ")
-            outfile.write(" \n")
-        outfile.close()
+
+        np.savetxt(OutputFileName, experiments)
+
+
     else:
-        print(rate)
-        for e in range(0,Nexp):
-            for t in range(0,Nmeas):
-                print(random.Poisson(rate), end=' ')
-            print(" ")
-   
+
+        print( experiments )
