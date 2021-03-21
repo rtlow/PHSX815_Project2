@@ -22,15 +22,6 @@ from python.MySort import MySort
 
 # helper functions
 
-# PoisProb approximates the Poisson probability
-# using the Stirling approximation
-def PoisProb(x, rate):
-
-    logP = x * np.log(rate) - rate - special.gammaln(x + 1)
-
-    P = np.exp(logP)
-    
-    return P
 
 # given two sets of data and a significance level, plots the histograms
 # with significance
@@ -41,13 +32,17 @@ def PlotHypotheses(array0, array1, title, alpha, filename='Hypotheses'):
 
     hmin = min(array0[0], array1[0])
     hmax = max(array0[N0-1], array1[N1-1])
+    
+    # normalization weights
+    w1 = np.ones_like(array0)/N0
+    w2 = np.ones_like(array1)/N1
 
     fig = plt.figure(figsize=[12,7])
     ax = plt.axes()
 
     # just 100 bins for visualization
-    plt.hist(array0, 100, density=True, color='b', alpha=0.5, label='$P(\lambda | H0)$')
-    plt.hist(array1, 100, density=True, color='g', alpha=0.5, label='$P(\lambda | H1)$')
+    plt.hist(array0, 100, weights=w1, color='b', alpha=0.5, label='$P(\lambda | H0)$')
+    plt.hist(array1, 100, weights=w2, color='g', alpha=0.5, label='$P(\lambda | H1)$')
     
     # since the list is sorted
     # lambda_crit is achieved at 1-alpha percent of the way through array0
@@ -121,49 +116,38 @@ if __name__ == "__main__":
     
     # reading in data from files
 
-    Nmeas = 0
-    rate = []
-    counts = []
-    need_rate = True
-    
-    # loop over all hypotheses (only 2)
-    for h in range(2):
-        
-        need_rate = True
-        this_hyp = []
-        
-        with open(InputFile[h]) as ifile:
-            
-            # parse each line
-            for line in ifile:
-                
-                # first line is the rate parameter
-                if need_rate:
-                    need_rate = False
-                    rate.append(float(line))
-                    continue
-            
-                # each line is a different experiment
-                lineVals = line.split()
-                Nmeas = len(lineVals)
-                
-                this_exp = []
-                
-                # need to go through all measurements to convert them from string to float
-                for m in range(Nmeas):
-                    this_exp.append(float(lineVals[m]))
-                this_hyp.append(this_exp)
+    counts = [None, None]
 
-        counts.append(this_hyp)
-
+    counts[0] = np.loadtxt(InputFile[0])
+    counts[1] = np.loadtxt(InputFile[1])
 
     LLR = []
+    Nmeas = 0
     
+    # use simulated data for
+    # building probability histograms
+    
+    hists = [None, None]
+    bases = [None, None]
+    for h in range(2):
+        
+        # make this into a 1D array
+        reshaped = np.reshape( counts[h], -1 )
+        
+        # making unit-width bins
+        bins = np.arange( np.floor( reshaped.min() ), np.ceil( reshaped.max() ) )
+        
+        # with unit-width bins, the values are true probabilities
+        values, base = np.histogram( reshaped, bins=bins, density=True )
+
+        hists[h] = values
+        bases[h] = base
+
     # loop over all hypotheses
     for h in range(2):
         
         this_hyp = []
-
+        
         Nexp = len(counts[h])
 
         # loop over all experiments
@@ -171,16 +155,39 @@ if __name__ == "__main__":
             Nmeas = len(counts[h][e])
 
             LogLikeRatio = 0.
+            
+            ok_LLR = True
 
             # loop over all measurements to calculate the LLR
             for m in range(Nmeas):
-    
-                # LLR is a sum; one contributes positive, other negative
-                LogLikeRatio += np.log( PoisProb( counts[h][e][m], rate[1] ) ) # LLR for H1
+                
+                prob_of_H0 = 0
+                prob_of_H1 = 0
 
-                LogLikeRatio -= np.log( PoisProb( counts[h][e][m], rate[0] ) ) # LLR for H0
+                try:
 
-            this_hyp.append(LogLikeRatio)
+                    prob_of_H0 = hists[0][np.digitize( counts[h][e][m], bases[0], right=True )]
+                    prob_of_H1 = hists[1][np.digitize( counts[h][e][m], bases[1], right=True )]
+
+                    if (prob_of_H0 > 0) and (prob_of_H1 > 0):
+
+                        # LLR is a sum; one contributes positive, other negative
+                        LogLikeRatio += np.log( prob_of_H1 ) # LLR for H1
+
+                        LogLikeRatio -= np.log( prob_of_H0 ) # LLR for H0
+                    
+                    else:
+                        #ok_LLR = False
+                        continue
+
+                except:
+
+                    #ok_LLR = False
+                    continue
+
+            if ok_LLR:
+
+                this_hyp.append(LogLikeRatio)
 
         LLR.append(this_hyp)
     
@@ -190,9 +197,9 @@ if __name__ == "__main__":
     LLR[0] = np.array(Sorter.DefaultSort(LLR[0]))
     LLR[1] = np.array(Sorter.DefaultSort(LLR[1]))
 
-    plot_title = "{} measurements / experiment with rates $\lambda_0 = {:.2f}$, $\lambda_1 = {:.2f}$ counts / sec".format(Nmeas, rate[0], rate[1])
+    plot_title = "{} measurements / experiment".format(Nmeas)
 
-    fname = 'rate1_{:.2f}rate2_{:.2f}'.format(rate[0], rate[1])
+    fname = 'signalNoise'
     # plot the histogram
     alpha, beta, lambda_crit = PlotHypotheses(LLR[0], LLR[1], plot_title, alpha, filename=fname)
     

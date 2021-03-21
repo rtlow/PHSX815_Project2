@@ -20,37 +20,18 @@ MeanSeeing = 10 # standard deviation of atmospheric seeing [arcsecond]
 
 I0 = 1000 # maximum intensity of Airy disk [counts/second]
 
-# default seed
-seed = 5555
-
-
-# read the user-provided seed from the command line (if there)
-# logic is up here so that random object can be global
-if '-seed' in sys.argv:
-    p = sys.argv.index('-seed')
-    seed = sys.argv[p+1]
-
-# class instance of our Random class using seed
-random = Random(seed)
-
 
 # returns the probability of finding an excited electron
 # at energy E [eV] and temperature T [K]
 def FermiDirac(E, T):
     return 1/( 1 + np.exp( (E - Ef)/ (kB * T) ) )
 
-# distribution is bounded by 1 on top
-def Flat():
-    return 1
-
-def sampleFlat(a, b):
-    return a + (b - a) * random.rand()
 
 # number of noise electrons we measure
 # are the number of electrons above the
 # Fermi level, so we can do numerical
 # integration
-def sampleFermiDirac(Nsample, T, n=1000):
+def sampleFermiDirac(Nsample, T, n=100):
     
     samples = []
     
@@ -69,17 +50,15 @@ def sampleFermiDirac(Nsample, T, n=1000):
 
         int_samples = []
 
-        for j in range(n):
+        xi = np.random.uniform(a, b, size=n)
 
-            xi = sampleFlat(a, b)
-
-            int_samples.append( FermiDirac(xi, T) )
+        int_samples.append( FermiDirac(xi, T) )
 
         integral = (V/n) * np.sum(int_samples)
 
         rate = Nelectrons * integral
 
-        samp = random.Poisson(rate)
+        samp = np.random.poisson(rate)
 
         samples.append(samp)
 
@@ -99,13 +78,13 @@ def Gaussian(x, mu, sig):
 # doing the MCMC sampling
 def get_MCMC_sample(x):
 
-    p_x = [ random.Normal(mu=x[0], sig=MeanSeeing) ,\
-                  random.Normal(mu=x[1], sig=MeanSeeing) ]
+    p_x = [ np.random.normal(x[0], MeanSeeing) ,\
+            np.random.normal(x[1], MeanSeeing) ]
     
     # since sigma is the same, the ratio between
     # gaussian probabilities is just 1
     acceptance_prob = min( 1, AiryDisk(p_x) / AiryDisk(x) )
-    R = random.rand()
+    R = np.random.uniform()
 
     if R <= acceptance_prob:
         return p_x
@@ -123,7 +102,7 @@ def sampleAiry(Nsamp, Nburn=0, Nskip=0):
     # burning off Nburn samples
     for n in range(Nburn):
         x = get_MCMC_sample(x)
-
+        
     samples = []
 
     # generating our samples
@@ -142,7 +121,7 @@ def sampleAiry(Nsamp, Nburn=0, Nskip=0):
         rate = AiryDisk(x)
         
         # take a sample from Poisson
-        samp = random.Poisson(rate)
+        samp = np.random.poisson(rate)
 
         samples.append(samp)
 
@@ -154,7 +133,6 @@ if __name__ == "__main__":
     if '-h' in sys.argv or '--help' in sys.argv:
         print ("Usage: %s [options]" % sys.argv[0] )
         print('Options:')
-        print("-seed [number]       random seed") 
         print('-T [number]          temperature in Kelvin')
         print('-Nmeas [number]      no. measurements per experiment')
         print('-Nexp [number]       no. experiments')
