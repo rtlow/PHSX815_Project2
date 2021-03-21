@@ -14,19 +14,11 @@ kB = 8.617333e-5 # [ev/k]
 
 Ef = 1.12 / 2 # band gap of Si divided by 2 [eV]
 
-Nelectrons = 100 # no. free electrons per pixel
+Nelectrons = 10000 # no. free electrons per pixel
 
 MeanSeeing = 10 # standard deviation of atmospheric seeing [arcsecond]
 
-# TODO Adjust these parameters so that they make physical sense
-
-I0 = 100 # maximum intensity of Airy disk [counts/second]
-
-aper_a = 0.5 # aperture radius [m]
-
-aper_R = 1 # distance from aperture to focal plane [m] 
-
-lamb = 4000e-10 # mean observation wavelength [m]
+I0 = 1000 # maximum intensity of Airy disk [counts/second]
 
 # default seed
 seed = 5555
@@ -51,41 +43,46 @@ def FermiDirac(E, T):
 def Flat():
     return 1
 
+def sampleFlat(a, b):
+    return a + (b - a) * random.rand()
 
-# provides samples from the Fermi-Dirac distribution
-# using hit-miss method
-def sampleFermiDirac(Nsample, T):
+# number of noise electrons we measure
+# are the number of electrons above the
+# Fermi level, so we can do numerical
+# integration
+def sampleFermiDirac(Nsample, T, n=1000):
     
-    i = 0
-
     samples = []
     
-    while( i < Nsample ):
+    for i in range(Nsample):
+
+        # do the integration here
         
-        # just need to sample over [0, 1]
-        # samples of X are electron energies
-        X = random.rand()
+        # lower bound is Ef
+        a = Ef
 
-        R = FermiDirac(X, T)/Flat()
+        # upper bound is 1
 
-        ran = random.rand()
+        b = 1
 
-        # reject the sample and continue
-        if (ran > R):
-            continue
-        else:
-            
-            # convert from electron energy to rate parameter
-            
-            rate = Nelectrons * FermiDirac(X, T)
-            
-            # use this to sample from Poisson
-            samp = random.Poisson(rate)
-            
-            samples.append(samp)
+        V = b - a
 
-            i+=1
-    
+        int_samples = []
+
+        for j in range(n):
+
+            xi = sampleFlat(a, b)
+
+            int_samples.append( FermiDirac(xi, T) )
+
+        integral = (V/n) * np.sum(int_samples)
+
+        rate = Nelectrons * integral
+
+        samp = random.Poisson(rate)
+
+        samples.append(samp)
+
     return samples
 
 # 2D Airy Disk
@@ -93,9 +90,7 @@ def AiryDisk(x):
 
     q = np.sqrt( x[0]**2 + x[1]**2 )
 
-    arg = 2 * np.pi * aper_a * q / (lamb * aper_R)
-
-    return I0 * (2 * special.j1(arg) / arg ) ** 2
+    return I0 * (2 * special.j1(q) / q ) ** 2
 
 # just a Gaussian
 def Gaussian(x, mu, sig):
@@ -106,10 +101,10 @@ def get_MCMC_sample(x):
 
     p_x = [ random.Normal(mu=x[0], sig=MeanSeeing) ,\
                   random.Normal(mu=x[1], sig=MeanSeeing) ]
-
-    acceptance_prob = min( 1,\
-                          AiryDisk(p_x) * Gaussian(x[0], p_x[0], MeanSeeing) * Gaussian(x[1], p_x[1], MeanSeeing)/ \
-                          ( AiryDisk(x) * Gaussian(p_x[0], x[0], MeanSeeing) * Gaussian(p_x[1], x[1], MeanSeeing) ) )
+    
+    # since sigma is the same, the ratio between
+    # gaussian probabilities is just 1
+    acceptance_prob = min( 1, AiryDisk(p_x) / AiryDisk(x) )
     R = random.rand()
 
     if R <= acceptance_prob:
@@ -130,7 +125,7 @@ def sampleAiry(Nsamp, Nburn=0, Nskip=0):
         x = get_MCMC_sample(x)
 
     samples = []
-    
+
     # generating our samples
     for n in range(Nsamp):
         
@@ -142,8 +137,6 @@ def sampleAiry(Nsamp, Nburn=0, Nskip=0):
 
         x = get_MCMC_sample(x)
         
-        print(x)
-
         # use the Airy disk to convert these locations to
         # rate parameters
         rate = AiryDisk(x)
@@ -152,8 +145,6 @@ def sampleAiry(Nsamp, Nburn=0, Nskip=0):
         samp = random.Poisson(rate)
 
         samples.append(samp)
-    
-    print(samples)
 
     return samples
 
