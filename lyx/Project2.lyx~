@@ -954,9 +954,7 @@ name "fig:Log-Likelihood-Ratio-with"
 \begin_inset Formula $\lambda_{star}$
 \end_inset
 
- samples near zero, due to how the Airy disk rapidly decays away from the
- origin.
- 
+ samples near zero
 \end_layout
 
 \end_body

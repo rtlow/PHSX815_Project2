@@ -5,20 +5,16 @@ import sys
 import numpy as np
 import scipy.special as special
 
-# import our Random class from python/Random.py file
-sys.path.append(".")
-from python.Random import Random
-
 # global variables
 kB = 8.617333e-5 # [ev/k]
 
 Ef = 1.12 / 2 # band gap of Si divided by 2 [eV]
 
-Nelectrons = 10000 # no. free electrons per pixel
+Nelectrons = 1000 # no. free electrons per pixel
 
 MeanSeeing = 10 # standard deviation of atmospheric seeing [arcsecond]
 
-I0 = 1000 # maximum intensity of Airy disk [counts/second]
+I0 = 100 # maximum intensity of Airy disk [counts/second]
 
 
 # returns the probability of finding an excited electron
@@ -35,31 +31,36 @@ def sampleFermiDirac(Nsample, T, n=100):
     
     samples = []
     
+    # do the integration here
+    
+    # lower bound is Ef
+    a = Ef
+
+    # upper bound is 1
+
+    b = 1
+
+    V = b - a
+
+    int_samples = []
+
+    xi = np.random.uniform(a, b, size=n)
+
+    int_samples.append( FermiDirac(xi, T) )
+    
+    # this is the probability of being detected
+    integral = (V/n) * np.sum(int_samples)
+    
     for i in range(Nsample):
 
-        # do the integration here
+        # generate Nelectrons uniformly random numbers
+        nums = np.random.uniform(size=Nelectrons)
+
+        # number of noise electrons
+        rate = np.sum( nums <= integral )
         
-        # lower bound is Ef
-        a = Ef
-
-        # upper bound is 1
-
-        b = 1
-
-        V = b - a
-
-        int_samples = []
-
-        xi = np.random.uniform(a, b, size=n)
-
-        int_samples.append( FermiDirac(xi, T) )
-
-        integral = (V/n) * np.sum(int_samples)
-
-        rate = Nelectrons * integral
-
         samp = np.random.poisson(rate)
-
+        
         samples.append(samp)
 
     return samples

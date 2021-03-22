@@ -8,19 +8,13 @@ import matplotlib.pyplot as plt
 import matplotlib
 import scipy.special as special
 
+
 #setting matplotlib ticksize
 matplotlib.rc('xtick', labelsize=14) 
 matplotlib.rc('ytick', labelsize=14) 
 
 #set matplotlib global font size
 matplotlib.rcParams['font.size']=14
-
-# import our Random class from python/Random.py file
-sys.path.append(".")
-from python.MySort import MySort
-
-
-# helper functions
 
 
 # given two sets of data and a significance level, plots the histograms
@@ -168,7 +162,8 @@ if __name__ == "__main__":
 
                     prob_of_H0 = hists[0][np.digitize( counts[h][e][m], bases[0], right=True )]
                     prob_of_H1 = hists[1][np.digitize( counts[h][e][m], bases[1], right=True )]
-
+                    
+                    # need nonzero probability for this to make sense
                     if (prob_of_H0 > 0) and (prob_of_H1 > 0):
 
                         # LLR is a sum; one contributes positive, other negative
@@ -177,12 +172,9 @@ if __name__ == "__main__":
                         LogLikeRatio -= np.log( prob_of_H0 ) # LLR for H0
                     
                     else:
-                        #ok_LLR = False
                         continue
 
                 except:
-
-                    #ok_LLR = False
                     continue
 
             if ok_LLR:
@@ -191,11 +183,11 @@ if __name__ == "__main__":
 
         LLR.append(this_hyp)
     
-    # sort the data
-    Sorter = MySort()
-
-    LLR[0] = np.array(Sorter.DefaultSort(LLR[0]))
-    LLR[1] = np.array(Sorter.DefaultSort(LLR[1]))
+    LLR[0].sort()
+    LLR[1].sort()
+    
+    LLR[0] = np.array(LLR[0])
+    LLR[1] = np.array(LLR[1])
 
     plot_title = "{} measurements / experiment".format(Nmeas)
 
