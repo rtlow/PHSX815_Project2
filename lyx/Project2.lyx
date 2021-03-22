@@ -262,11 +262,13 @@ For silicon, the band gap is about
 \begin_layout Standard
 Suppose our detector is a single pixel.
  This is a small detector area.
- Because of this, we may be collecting light from an area of the sky of
- a few arcseconds or less.
+ Because of this, we are collecting light from an area of the sky of fractions
+ of an arcsecond.
  The starlight from space must pass through the atmosphere, where thermal
  variations cause the light to stochastically refract.
- This is known as atmospheric seeing.
+ This random refraction, known as atmospheric seeing, causes the apparent
+ position of the star to rapidly change on the sky, which is why the stars
+ twinkle.
  While we can measure the average seeing for a night of observation, it
  is a stochastic process and therefore causes the apparent position of an
  object to vary over an exposure.
@@ -320,7 +322,7 @@ I\left(\theta\right)=I_{0}\left(\frac{2J_{1}\left(2\pi aq\lambda^{-1}R^{-1}\righ
 
 \end_inset
 
-For our purposes, we will consider an observational configuration such that
+For simplicity, we will consider an observational configuration such that
  
 \begin_inset Formula $2\pi a\lambda^{-1}R^{-1}=1$
 \end_inset
@@ -330,8 +332,127 @@ For our purposes, we will consider an observational configuration such that
 \end_inset
 
  is unity.
- By sampling this intensity pattern for stochastically changing position,
- we can model 
+ Analytical plots of Equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:Airy"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ are presented in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:(Left):-An-analytical"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename Airy.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename AirySlice.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+(Left): An analytical contour plot of an Airy Disk.
+ (Right): The Airy disk as a function of radius.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:(Left):-An-analytical"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+By sampling this intensity pattern at random positions, we can model 
 \begin_inset Formula $\lambda_{star}$
 \end_inset
 
@@ -347,15 +468,13 @@ For both models, we must eventually perform hypothesis testing.
  In principle, that would mean integrating over all nuisance parameters.
  In practice, we perform Gibbs sampling.
  In Gibbs sampling, this integration is approximated by taking intermediate
- samples, that is
-\begin_inset Formula 
-\[
-\int P\left(x|\alpha,\beta\right)\approx P\left(x|\alpha,\beta\right)P\left(\alpha|\gamma\right)P\left(\beta|\delta\right)
-\]
-
-\end_inset
-
-We use this when constructing the Log-Likelihood Ratio (LLR) for each model.
+ samples of these nuisance parameters according to their own distributions.
+ Then, using those samples, we generate samples of our rate parameters and
+ feed those rate parameters into a Poisson distribution.
+ This final set of Poisson-distributed samples is a simulated set of data
+ with these nuisance parameters integrated out.
+ We use this when constructing the simulated data for the Log-Likelihood
+ Ratio (LLR) of each model.
 \end_layout
 
 \begin_layout Standard
@@ -447,7 +566,7 @@ P_{detected}=\int_{E_{f}}^{\infty}P\left(E\right)dE
 
 We can easily perform this integral numerically, and do so using Monte Carlo
  integration.
- For our purposes, since the tail probability in Equation 
+ Since the tail probability in Equation 
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "eq:FermiDirac"
@@ -458,7 +577,11 @@ noprefix "false"
 \end_inset
 
  is extremely small, it is sufficient to just integrate up to a reasonable
- upper bound.
+ upper bound, in our case 
+\begin_inset Formula $\left(E-E_{f}\right)/k_{B}T=1$
+\end_inset
+
+.
  Once this probability is calculated, we can produce a uniformly-distributed
  number from 
 \begin_inset Formula $0$
@@ -468,12 +591,14 @@ noprefix "false"
 \begin_inset Formula $1$
 \end_inset
 
- for each electron and decide whether the electron is excited or not.
+ for each free electron in the pixel and decide whether the electron is
+ excited or not.
  The total number of excited electrons is our noise rate parameter, 
 \begin_inset Formula $\lambda_{noise}$
 \end_inset
 
 .
+ For our purposes, we will assume that the number of free electrons is fixed.
  How the resulting distribution of 
 \begin_inset Formula $\lambda_{noise}$
 \end_inset
@@ -612,7 +737,7 @@ has_inner_box 1
 inner_pos "t"
 use_parbox 0
 use_makebox 0
-width "45col%"
+width "50col%"
 special "none"
 height "1in"
 height_special "totalheight"
@@ -648,7 +773,7 @@ has_inner_box 1
 inner_pos "t"
 use_parbox 0
 use_makebox 0
-width "45col%"
+width "50col%"
 special "none"
 height "1in"
 height_special "totalheight"
@@ -657,7 +782,7 @@ separation "3pt"
 shadowsize "4pt"
 framecolor "black"
 backgroundcolor "none"
-status open
+status collapsed
 
 \begin_layout Plain Layout
 \align center
@@ -679,7 +804,7 @@ status open
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-(Left): An analytical plot of an Airy Disk.
+(Left): An analytical contour plot of an Airy Disk.
  (Right): Position samples from an Airy Disk.
  Notice how the band structure is retained.
 \begin_inset CommandInset label
@@ -806,7 +931,18 @@ noprefix "false"
 
 \end_inset
 
+We consider the null hypothesis, 
+\begin_inset Formula $H_{0}$
+\end_inset
 
+, to be the case where we only detect noise.
+ The alternative hypothesis, 
+\begin_inset Formula $H_{1}$
+\end_inset
+
+, is when we detect some signal.
+ We want to reject the null hypothesis when we are observing an astronomical
+ object.
 \end_layout
 
 \begin_layout Section
@@ -819,7 +955,7 @@ We simulate a star with mean intensity of
 \end_inset
 
  counts per second, mean seeing of 
-\begin_inset Formula $10$
+\begin_inset Formula $1$
 \end_inset
 
  arcseconds, and a detector temperature of 
@@ -827,6 +963,15 @@ We simulate a star with mean intensity of
 \end_inset
 
 .
+ For both models, we simulate 
+\begin_inset Formula $100$
+\end_inset
+
+ measurements over 
+\begin_inset Formula $100$
+\end_inset
+
+ experiments.
  From our simulations, we were perfectly able to distinguish between the
  signal and the noise.
  The LLR plot is presented in Figure 
@@ -847,9 +992,70 @@ status collapsed
 
 \begin_layout Plain Layout
 \align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status collapsed
+
+\begin_layout Plain Layout
+\align center
 \begin_inset Graphics
 	filename signalNoise.png
 	width 100text%
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hspace*{\fill}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename signalNoise_low.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
 
 \end_inset
 
@@ -860,8 +1066,16 @@ status collapsed
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-Log-Likelihood Ratio with detector at 
+Log-Likelihood Ratio for a star with 
+\begin_inset Formula $I_{0}=100$
+\end_inset
+
+ counts/second and detector at (left) 
 \begin_inset Formula $T=300\,K$
+\end_inset
+
+, (right) 
+\begin_inset Formula $T=77\,K$
 \end_inset
 
 .
@@ -895,7 +1109,36 @@ name "fig:Log-Likelihood-Ratio-for"
 e (Figure 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "fig:Log-Likelihood-Ratio-with"
+reference "fig:Log-Likelihood-Ratio-for"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ Surprisingly, the two distributions are closer together than they were
+ when the temperature was higher.
+ This is due to the relatively large number of 
+\begin_inset Formula $\lambda_{star}$
+\end_inset
+
+ samples near zero, due to how the Airy disk rapidly decays away from the
+ origin.
+ Despite this, it appears that atmospheric seeing does not significantly
+ impede our ability to distinguish a signal source from noise.
+ 
+\end_layout
+
+\begin_layout Standard
+We also repeated the analysis for a star with mean intensity of 
+\begin_inset Formula $20$
+\end_inset
+
+ counts per second with the same parameters as above (Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Log-Likelihood-Ratio-for-1"
 plural "false"
 caps "false"
 noprefix "false"
@@ -910,9 +1153,70 @@ status collapsed
 
 \begin_layout Plain Layout
 \align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status collapsed
+
+\begin_layout Plain Layout
+\align center
 \begin_inset Graphics
-	filename signalNoise_low.png
+	filename low_signalNoise.png
 	width 100text%
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hspace*{\fill}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename low_signalNoise_low.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
 
 \end_inset
 
@@ -923,40 +1227,72 @@ status collapsed
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-Log-Likelihood Ratio with detector at 
+Log-Likelihood Ratio for a star with 
+\begin_inset Formula $I_{0}=20$
+\end_inset
+
+ counts/second and detector at (left) 
+\begin_inset Formula $T=300\,K$
+\end_inset
+
+, (right) 
 \begin_inset Formula $T=77\,K$
 \end_inset
 
 .
 \begin_inset CommandInset label
 LatexCommand label
-name "fig:Log-Likelihood-Ratio-with"
-
-\end_inset
-
- 
-\end_layout
+name "fig:Log-Likelihood-Ratio-for-1"
 
 \end_inset
 
 
 \end_layout
 
-\begin_layout Plain Layout
+\end_inset
+
 
 \end_layout
 
 \end_inset
 
- Surprisingly, the two distributions are closer together than they were
- when the temperature was higher.
- This is due to the relatively large number of 
-\begin_inset Formula $\lambda_{star}$
-\end_inset
+ The two distributions are just as distinguishable.
+\end_layout
 
- samples near zero, due to how the Airy disk rapidly decays away from the
- origin.
- 
+\begin_layout Standard
+However, we must recognize the limitations of this model.
+ In this model, we assumed a single pixel with a very small detecting area.
+ Real detector arrays can have a field of view of several arcminutes.
+ The image moving off of one pixel, with its small detecting area, doesn't
+ affect the measurement as much since the image will move onto a different
+ pixel.
+ Thus, seeing affects our ability to resolve an image rather than detect
+ it.
+ Another major limitation is with our noise model.
+ We assumed that the number of free electrons in the pixel was fixed.
+ This is not realistic, since the number of free electrons in a pixel depends
+ on the doping process, which cannot be controlled exactly.
+\end_layout
+
+\begin_layout Section
+Conclusions
+\end_layout
+
+\begin_layout Standard
+Realistically, this kind of signal and noise modeling does not need to be
+ performed for day-to-day astronomy.
+ We have seen that it is very easy to distinguish between instrumental noise
+ and even a faint signal.
+ It is reasonable enough to characterize the mean seeing and the mean noise
+ to account for their effects.
+ However, this kind of modeling is necessary when designing new instrumentation
+ for revolutionary new observational design or when we are planning observations
+ near the extremes of our sensitivity limits.
+ The methods used in this analysis may be extended to consider two sources
+ in the detection area or for radically different intensity patterns.
+ Those extensions would allow us to model observing close binary systems
+ or observations using a more complicated instrument such as an interferometer
+ respectively.
 \end_layout
 
 \end_body

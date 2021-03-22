@@ -12,7 +12,7 @@ Ef = 1.12 / 2 # band gap of Si divided by 2 [eV]
 
 Nelectrons = 1000 # no. free electrons per pixel
 
-MeanSeeing = 10 # standard deviation of atmospheric seeing [arcsecond]
+MeanSeeing = 1 # standard deviation of atmospheric seeing [arcsecond]
 
 I0 = 100 # maximum intensity of Airy disk [counts/second]
 
@@ -135,6 +135,9 @@ if __name__ == "__main__":
         print ("Usage: %s [options]" % sys.argv[0] )
         print('Options:')
         print('-T [number]          temperature in Kelvin')
+        print('-Nfree [number]      no. free electrons in pixel')
+        print('-I0 [number]         max intensity of starlight in counts/second')
+        print('-seeing [number]     mean seeing of atmosphere in arcseconds')
         print('-Nmeas [number]      no. measurements per experiment')
         print('-Nexp [number]       no. experiments')
         print('-Nskip [number]      no. samples to skip in MCMC')
@@ -193,7 +196,22 @@ if __name__ == "__main__":
         p = sys.argv.index('-Nburn')
         Ne = int(sys.argv[p+1])
         if Ne > 0:
-            Nburn = Ne
+            Nburn = Ne          
+    if '-Nfree' in sys.argv:
+        p = sys.argv.index('-Nfree')
+        Ne = int(sys.argv[p+1])
+        if Ne > 0:
+            Nelectrons = Ne
+    if '-I0' in sys.argv:
+        p = sys.argv.index('-I0')
+        Ne = int(sys.argv[p+1])
+        if Ne > 0:
+            I0 = Ne
+    if '-seeing' in sys.argv:
+        p = sys.argv.index('-I0')
+        Ne = int(sys.argv[p+1])
+        if Ne > 0:
+            MeanSeeing = Ne
     if '-output' in sys.argv:
         p = sys.argv.index('-output')
         OutputFileName = sys.argv[p+1]
